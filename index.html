@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maro Business</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .container {
+            max-width: 1920px;
+            margin: auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"], input[type="date"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #5CAF90;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            cursor: pointer;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .net-balance {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .positive {
+            color: green;
+        }
+        .negative {
+            color: red;
+        }
+        .edit-button, .delete-button {
+            background-color: #f0ad4e;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .edit-button:hover {
+            background-color: #ec971f;
+        }
+        .delete-button {
+            background-color: #d9534f;
+        }
+        .delete-button:hover {
+            background-color: #c9302c;
+        }
+        .income-row {
+            background-color: #e0ffe0;
+        }
+        .expense-row {
+            background-color: #ffe0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Maro&Ali Business</h1>
+        <button onclick="window.location.href='manage_sellers.html'">Manage Sellers</button>
+        <button onclick="window.location.href='manage_buyers.html'">Manage Buyers</button>
+        <form id="transaction-form">
+            <div class="form-group">
+                <label for="seller">Seller:</label>
+                <select id="seller">
+                    <option value="">None</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="buyer">Buyer:</label>
+                <select id="buyer">
+                    <option value="">None</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="date">Date:</label>
+                <input type="date" id="date">
+            </div>
+            <div class="form-group">
+                <label for="amount">Amount:</label>
+                <input type="number" id="amount" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="type">Type:</label>
+                <select id="type">
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="delivery-fee">Delivery Fee:</label>
+                <input type="checkbox" id="delivery-fee">
+            </div>
+            <button type="submit">Add Transaction</button>
+        </form>
+
+        <h2>Filters</h2>
+        <div class="form-group">
+            <label for="filter-seller">Seller:</label>
+            <select id="filter-seller" onchange="updateTable()">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="filter-buyer">Buyer:</label>
+            <select id="filter-buyer" onchange="updateTable()">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="filter-date">Date:</label>
+            <input type="date" id="filter-date" onchange="updateTable()">
+        </div>
+        <div class="form-group">
+            <label for="filter-amount">Amount (min):</label>
+            <input type="number" id="filter-amount" step="0.01" onchange="updateTable()">
+        </div>
+        <div class="form-group">
+            <label for="filter-type">Type:</label>
+            <select id="filter-type" onchange="updateTable()">
+                <option value="">All</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+            </select>
+        </div>
+
+        <h2>Transactions</h2>
+        <table id="transactions-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTransactions('seller')">Seller</th>
+                    <th onclick="sortTransactions('buyer')">Buyer</th>
+                    <th onclick="sortTransactions('date')">Date</th>
+                    <th onclick="sortTransactions('amount')">Amount</th>
+                    <th onclick="sortTransactions('type')">Type</th>
+                    <th>Delivery Fee</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h2>Summary</h2>
+        <p>Initial Fee: $<span id="initial-fee">200.00</span></p>
+        <p>Total Transaction Count: <span id="total-count">0</span></p>
+        <p>Total Income: $<span id="total-income">0.00</span></p>
+        <p>Total Expenses: $<span id="total-expenses">0.00</span></p>
+        <p>Total Delivery Fees: $<span id="total-delivery-fees">0.00</span></p>
+    </div>
+    <div id="net-balance" class="net-balance">Net Balance: $0.00</div>
+
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let sellers = JSON.parse(localStorage.getItem('sellers')) || [];
+        let buyers = JSON.parse(localStorage.getItem('buyers')) || [];
+
+        const form = document.getElementById('transaction-form');
+        const sellerSelect = document.getElementById('seller');
+        const buyerSelect = document.getElementById('buyer');
+        const filterSeller = document.getElementById('filter-seller');
+        const filterBuyer = document.getElementById('filter-buyer');
+        const filterDate = document.getElementById('filter-date');
+        const filterAmount = document.getElementById('filter-amount');
+        const filterType = document.getElementById('filter-type');
+        const transactionsTable = document.getElementById('transactions-table').getElementsByTagName('tbody')[0];
+        const totalCountElement = document.getElementById('total-count');
+        const totalIncomeElement = document.getElementById('total-income');
+        const totalExpensesElement = document.getElementById('total-expenses');
+        const netBalanceElement = document.getElementById('net-balance');
+
+        let sortOrder = {
+            seller: 'asc',
+            buyer: 'asc',
+            date: 'asc',
+            amount: 'asc',
+            type: 'asc'
+        };
+
+        function populateDropdowns() {
+            sellerSelect.innerHTML = '<option value="">None</option>';
+            filterSeller.innerHTML = '<option value="">All</option>';
+            buyerSelect.innerHTML = '<option value="">None</option>';
+            filterBuyer.innerHTML = '<option value="">All</option>';
+            sellers.forEach(seller => {
+                const option = document.createElement('option');
+                option.value = seller.name;
+                option.textContent = seller.name;
+                sellerSelect.appendChild(option);
+                filterSeller.appendChild(option.cloneNode(true));
+            });
+            buyers.forEach(buyer => {
+                const option = document.createElement('option');
+                option.value = buyer.name;
+                option.textContent = buyer.name;
+                buyerSelect.appendChild(option);
+                filterBuyer.appendChild(option.cloneNode(true));
+            });
+        }
+
+        populateDropdowns();
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const transaction = {
+                seller: document.getElementById('seller').value || 'N/A',
+                buyer: document.getElementById('buyer').value || 'N/A',
+                date: document.getElementById('date').value || 'N/A',
+                amount: parseFloat(document.getElementById('amount').value) || 0,
+                type: document.getElementById('type').value || 'N/A',
+                deliveryFee: document.getElementById('delivery-fee').checked
+            };
+            transactions.push(transaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            updateTable();
+            updateSummary();
+            form.reset();
+        });
+
+        function updateTable() {
+            transactionsTable.innerHTML = '';
+            const filteredTransactions = transactions.filter(transaction => {
+                return (filterSeller.value === "" || transaction.seller === filterSeller.value) &&
+                       (filterBuyer.value === "" || transaction.buyer === filterBuyer.value) &&
+                       (filterDate.value === "" || transaction.date === filterDate.value) &&
+                       (filterAmount.value === "" || transaction.amount >= parseFloat(filterAmount.value)) &&
+                       (filterType.value === "" || transaction.type === filterType.value);
+            });
+            filteredTransactions.forEach((transaction, index) => {
+                const row = transactionsTable.insertRow();
+                row.className = transaction.type === 'income' ? 'income-row' : 'expense-row';
+                row.insertCell(0).textContent = transaction.seller;
+                row.insertCell(1).textContent = transaction.buyer;
+                row.insertCell(2).textContent = transaction.date;
+                row.insertCell(3).textContent = '$' + transaction.amount.toFixed(2);
+                row.insertCell(4).textContent = transaction.type;
+                row.insertCell(5).textContent = transaction.deliveryFee ? '$2.00' : '$0.00';
+                const actionsCell = row.insertCell(6);
+
+                // Edit button
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.className = 'edit-button';
+                editButton.onclick = function() {
+                    // Fill form with existing data for editing
+                    document.getElementById('seller').value = transaction.seller;
+                    document.getElementById('buyer').value = transaction.buyer;
+                    document.getElementById('date').value = transaction.date;
+                    document.getElementById('amount').value = transaction.amount;
+                    document.getElementById('type').value = transaction.type;
+                    document.getElementById('delivery-fee').checked = transaction.deliveryFee;
+                    // Remove the transaction being edited
+                    transactions.splice(index, 1);
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                    updateTable();
+                    updateSummary();
+                };
+                actionsCell.appendChild(editButton);
+
+                // Delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-button';
+                deleteButton.onclick = function() {
+                    transactions.splice(index, 1);
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                    updateTable();
+                    updateSummary();
+                };
+                actionsCell.appendChild(deleteButton);
+            });
+        }
+
+        function updateSummary() {
+            const initialFee = 200.00;
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+            const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+            const totalDeliveryFees = transactions.filter(t => t.deliveryFee).length * 2;
+            const netBalance = initialFee + totalIncome - totalExpenses - totalDeliveryFees;
+            totalCountElement.textContent = transactions.length;
+            totalIncomeElement.textContent = totalIncome.toFixed(2);
+            totalExpensesElement.textContent = totalExpenses.toFixed(2);
+            document.getElementById('total-delivery-fees').textContent = totalDeliveryFees.toFixed(2);
+            netBalanceElement.textContent = `Net Balance: $${netBalance.toFixed(2)}`;
+            netBalanceElement.className = 'net-balance ' + (netBalance >= 0 ? 'positive' : 'negative');
+        }
+
+        function sortTransactions(column) {
+            const order = sortOrder[column];
+            transactions.sort((a, b) => {
+                let comparison = 0;
+                if (column === 'date') {
+                    comparison = new Date(a[column]) - new Date(b[column]);
+                } else if (column === 'amount') {
+                    comparison = a[column] - b[column];
+                } else {
+                    comparison = a[column].localeCompare(b[column]);
+                }
+                return order === 'asc' ? comparison : -comparison;
+            });
+            sortOrder[column] = order === 'asc' ? 'desc' : 'asc';
+            updateTable();
+        }
+
+        // Initial load
+        updateTable();
+        updateSummary();
+    </script>
+</body>
+</html>
